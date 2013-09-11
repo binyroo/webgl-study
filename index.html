@@ -9,13 +9,19 @@ canvas{background-color:white;}
 </style>
 <script type="x-shader/x-vertex" id="shader-vs">
 attribute vec3 aVertexPosition;
+attribute vec3 aVertexColor;
+
+varying highp vec4 vColor;
+
 void main(void) {
   gl_Position = vec4(aVertexPosition, 1.0);
+  vColor = vec4(aVertexColor, 1.0);
 }
 </script>
 <script type="x-shader/x-fragment" id="shader-fs">
+varying highp vec4 vColor;
 void main(void) {
-  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  gl_FragColor = vColor;
 }
 </script>
 <script>
@@ -25,7 +31,9 @@ var gl = null,
   vertexShader = null;
 
 var vertexPositionAttribute = null,
-  trianglesVerticeBuffer = null;
+  trianglesVerticeBuffer = null,
+  vertexColorAttribute = null,
+  trianglesColorBuffer = null;
 
 function initWebGL() {
   canvas = document.getElementById('my-canvas');
@@ -100,6 +108,22 @@ function setupBuffers() {
   trianglesVerticeBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+
+  var triangleVerticeColors = [
+    // red left triangle
+    1.0, 0.0, 0.0,
+    1.0, 1.0, 1.0,
+    1.0, 0.0, 0.0,
+
+    // blue right triangle
+    0.0, 0.0, 1.0,
+    1.0, 1.0, 1.0,
+    0.0, 0.0, 1.0
+  ];
+
+  trianglesColorBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticeColors), gl.STATIC_DRAW);
 }
 
 function drawScene() {
@@ -107,6 +131,12 @@ function drawScene() {
   gl.enableVertexAttribArray(vertexPositionAttribute);
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+  vertexColorAttribute = gl.getAttribLocation(glProgram, 'aVertexColor');
+  gl.enableVertexAttribArray(vertexColorAttribute);
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
+  gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 0, 0);
+
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 </script>
