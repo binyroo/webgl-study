@@ -11,10 +11,13 @@ canvas{background-color:white;}
 attribute vec3 aVertexPosition;
 attribute vec3 aVertexColor;
 
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+
 varying highp vec4 vColor;
 
 void main(void) {
-  gl_Position = vec4(aVertexPosition, 1.0);
+  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   vColor = vec4(aVertexColor, 1.0);
 }
 </script>
@@ -37,6 +40,9 @@ var vertexPositionAttribute = null,
   vertexColorAttribute = null,
   trianglesColorBuffer = null;
 
+var mvMatrix = mat4.create(),
+  pMatrix = mat4.create();
+
 function initWebGL() {
   canvas = document.getElementById('my-canvas');
   try {
@@ -47,9 +53,11 @@ function initWebGL() {
   if (gl) {
     initShaders();
     setupBuffers();
+    getMatrixUniforms();
     (function animLoop() {
       setupWebGL();
       setupDynamicBuffers();
+      setMatrixUniforms();
       drawScene();
       requestAnimationFrame(animLoop, canvas);
     })();
@@ -63,6 +71,10 @@ function setupWebGL() {
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.viewport(0, 0, canvas.width, canvas.height);
   // gl.viewport(0, canvas.height/2.0, canvas.width/2.0, canvas.height/2.0);
+
+  mat4.perspective(pMatrix, 45, canvas.width / canvas.height, 0.1, 100.0);
+  mat4.identity(mvMatrix);
+  mat4.translate(mvMatrix, mvMatrix, [0, 0, -2.0]);
 }
 
 function initShaders() {
@@ -121,20 +133,30 @@ function setupDynamicBuffers() {
   var x_translation = Math.sin(angle) / 2.0;
   var triangleVertices = [
     // left triangle
-    -0.5 + x_translation, 0.5, 0.0,
-    0.0 + x_translation, 0.0, 0.0,
-    -0.5 + x_translation, -0.5, 0.0,
+    -0.5 + x_translation, 0.5, -0.5,
+    0.0 + x_translation, 0.0, -0.5,
+    -0.5 + x_translation, -0.5, -0.5,
 
     // right triangle
-    0.5 + x_translation, 0.5, 0.0,
-    0.0 + x_translation, 0.0, 0.0,
-    0.5 + x_translation, -0.5, 0.0
+    0.5 + x_translation, 0.5, 0.5,
+    0.0 + x_translation, 0.0, 0.5,
+    0.5 + x_translation, -0.5, 0.5
   ];
   angle += 0.01;
 
   trianglesVerticeBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.DYNAMIC_DRAW);
+}
+
+function getMatrixUniforms() {
+  glProgram.pMatrixUniform = gl.getUniformLocation(glProgram, 'uPMatrix');
+  glProgram.mvMatrixUniform = gl.getUniformLocation(glProgram, 'uMVMatrix');
+}
+
+function setMatrixUniforms() {
+  gl.uniformMatrix4fv(glProgram.pMatrixUniform, false, pMatrix);
+  gl.uniformMatrix4fv(glProgram.mvMatrixUniform, false, mvMatrix);
 }
 
 function drawScene() {
