@@ -9,22 +9,30 @@ canvas{background-color:white;}
 </style>
 <script type="x-shader/x-vertex" id="shader-vs">
 attribute vec3 aVertexPosition;
-attribute vec3 aVertexColor;
+// attribute vec3 aVertexColor;
+attribute vec2 aVertexTexCoord;
 
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 
-varying highp vec4 vColor;
+// varying highp vec4 vColor;
+varying highp vec2 vTextureCoord;
 
 void main(void) {
   gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-  vColor = vec4(aVertexColor, 1.0);
+  // vColor = vec4(aVertexColor, 1.0);
+  vTextureCoord = aVertexTexCoord;
 }
 </script>
 <script type="x-shader/x-fragment" id="shader-fs">
-varying highp vec4 vColor;
+// varying highp vec4 vColor;
+varying highp vec2 vTextureCoord;
+
+uniform sampler2D uSampler;
+
 void main(void) {
-  gl_FragColor = vColor;
+  // gl_FragColor = vColor;
+  gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
 }
 </script>
 <script src="lib/raf_polyfill.js" type="text/javascript"></script>
@@ -39,12 +47,41 @@ var vertexPositionAttribute = null,
   trianglesVerticeBuffer = null,
   vertexColorAttribute = null,
   trianglesColorBuffer = null,
-  triangleVerticesIndexBuffer = null;
+  triangleVerticesIndexBuffer = null,
+
+  vertexTexCoordAttribute = null,
+  trianglesTexCoordBuffer = null;
 
 var mvMatrix = mat4.create(),
   pMatrix = mat4.create();
 
 var angle = 0.01;
+
+var textureImage = null;
+
+function loadTexture() {
+  textureImage = new Image();
+  textureImage.onload = function() {
+    setupTexture();
+  }
+
+  textureImage.src = 'textures/stone-128px.jpg';
+}
+
+function setupTexture() {
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImage);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  gl.uniform1i(glProgram.samplerUniform, 0);
+
+  if (!gl.isTexture(texture)) {
+    console.error('Error: Texture is invalid');
+  }
+}
 
 function initWebGL() {
   canvas = document.getElementById('my-canvas');
@@ -57,6 +94,8 @@ function initWebGL() {
     initShaders();
     setupBuffers();
     getMatrixUniforms();
+    loadTexture();
+
     (function animLoop() {
       setupWebGL();
       setMatrixUniforms();
@@ -118,28 +157,6 @@ function makeShader(src, type) {
 }
 
 function setupBuffers() {
-  var triangleVerticeColors = [
-    //front face
-    0.0, 0.0, 1.0,
-    1.0, 1.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    0.0, 0.0, 1.0,
-    1.0, 1.0, 1.0,
-
-    //rear face
-    0.0, 1.0, 1.0,
-    1.0, 1.0, 1.0,
-    0.0, 1.0, 1.0,
-    0.0, 1.0, 1.0,
-    0.0, 1.0, 1.0,
-    1.0, 1.0, 1.0
-  ];
-
-  trianglesColorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticeColors), gl.STATIC_DRAW);
-
   //12 vertices
   var triangleVertices = [
     //front face
@@ -163,6 +180,50 @@ function setupBuffers() {
   trianglesVerticeBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+
+  // var triangleVerticeColors = [
+  //   //front face
+  //   0.0, 0.0, 1.0,
+  //   1.0, 1.0, 1.0,
+  //   0.0, 0.0, 1.0,
+  //   0.0, 0.0, 1.0,
+  //   0.0, 0.0, 1.0,
+  //   1.0, 1.0, 1.0,
+
+  //   //rear face
+  //   0.0, 1.0, 1.0,
+  //   1.0, 1.0, 1.0,
+  //   0.0, 1.0, 1.0,
+  //   0.0, 1.0, 1.0,
+  //   0.0, 1.0, 1.0,
+  //   1.0, 1.0, 1.0
+  // ];
+
+  // trianglesColorBuffer = gl.createBuffer();
+  // gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
+  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticeColors), gl.STATIC_DRAW);
+
+  var triangleTexCoords = [
+    //front face
+    0.0, 0.0,
+    1.0, 0.0,
+    2.0, 0.0,
+    0.5, 1.0,
+    1.5, 1.0,
+    1.0, 2.0,
+
+    //rear face
+    0.0, 0.0,
+    1.0, 0.0,
+    2.0, 0.0,
+    0.5, 1.0,
+    1.5, 1.0,
+    1.0, 2.0
+  ];
+
+  trianglesTexCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleTexCoords), gl.STATIC_DRAW);
 
   //setup vertice buffers
   //18 triangles
@@ -196,7 +257,7 @@ function setupBuffers() {
     8,2,0
   ];
 
-  triangleVerticesIndexBuffer = gl.createBuffer(0);
+  triangleVerticesIndexBuffer = gl.createBuffer();
   triangleVerticesIndexBuffer.number_vertex_points = triangleVertexIndices.length;
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleVerticesIndexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangleVertexIndices), gl.STATIC_DRAW);
@@ -205,6 +266,7 @@ function setupBuffers() {
 function getMatrixUniforms() {
   glProgram.pMatrixUniform = gl.getUniformLocation(glProgram, 'uPMatrix');
   glProgram.mvMatrixUniform = gl.getUniformLocation(glProgram, 'uMVMatrix');
+  glProgram.samplerUniform = gl.getUniformLocation(glProgram, 'uSampler');
 }
 
 function setMatrixUniforms() {
@@ -218,10 +280,15 @@ function drawScene() {
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
-  vertexColorAttribute = gl.getAttribLocation(glProgram, 'aVertexColor');
-  gl.enableVertexAttribArray(vertexColorAttribute);
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
-  gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 0, 0);
+  // vertexColorAttribute = gl.getAttribLocation(glProgram, 'aVertexColor');
+  // gl.enableVertexAttribArray(vertexColorAttribute);
+  // gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
+  // gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 0, 0);
+
+  vertexTexCoordAttribute = gl.getAttribLocation(glProgram, 'aVertexTexCoord');
+  gl.enableVertexAttribArray(vertexTexCoordAttribute);
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
+  gl.vertexAttribPointer(vertexTexCoordAttribute, 2, gl.FLOAT, false, 0, 0);
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleVerticesIndexBuffer);
   gl.drawElements(gl.TRIANGLES, triangleVerticesIndexBuffer.number_vertex_points, gl.UNSIGNED_SHORT, 0);
