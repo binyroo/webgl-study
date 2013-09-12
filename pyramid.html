@@ -9,29 +9,24 @@ canvas{background-color:white;}
 </style>
 <script type="x-shader/x-vertex" id="shader-vs">
 attribute vec3 aVertexPosition;
-// attribute vec3 aVertexColor;
 attribute vec2 aVertexTexCoord;
 
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 
-// varying highp vec4 vColor;
 varying highp vec2 vTextureCoord;
 
 void main(void) {
   gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-  // vColor = vec4(aVertexColor, 1.0);
   vTextureCoord = aVertexTexCoord;
 }
 </script>
 <script type="x-shader/x-fragment" id="shader-fs">
-// varying highp vec4 vColor;
 varying highp vec2 vTextureCoord;
 
 uniform sampler2D uSampler;
 
 void main(void) {
-  // gl_FragColor = vColor;
   gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
 }
 </script>
@@ -45,9 +40,6 @@ var gl = null,
 
 var vertexPositionAttribute = null,
   trianglesVerticeBuffer = null,
-  vertexColorAttribute = null,
-  trianglesColorBuffer = null,
-  triangleVerticesIndexBuffer = null,
 
   vertexTexCoordAttribute = null,
   trianglesTexCoordBuffer = null;
@@ -158,7 +150,7 @@ function makeShader(src, type) {
 
 function setupBuffers() {
   //12 vertices
-  var triangleVertices = [
+  var triangleVerticesOriginal = [
     //front face
     //bottom left to right,  to top
     0.0, 0.0, 0.0,
@@ -177,55 +169,6 @@ function setupBuffers() {
     1.0, 2.0, -2.0
   ];
 
-  trianglesVerticeBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
-
-  // var triangleVerticeColors = [
-  //   //front face
-  //   0.0, 0.0, 1.0,
-  //   1.0, 1.0, 1.0,
-  //   0.0, 0.0, 1.0,
-  //   0.0, 0.0, 1.0,
-  //   0.0, 0.0, 1.0,
-  //   1.0, 1.0, 1.0,
-
-  //   //rear face
-  //   0.0, 1.0, 1.0,
-  //   1.0, 1.0, 1.0,
-  //   0.0, 1.0, 1.0,
-  //   0.0, 1.0, 1.0,
-  //   0.0, 1.0, 1.0,
-  //   1.0, 1.0, 1.0
-  // ];
-
-  // trianglesColorBuffer = gl.createBuffer();
-  // gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
-  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVerticeColors), gl.STATIC_DRAW);
-
-  var triangleTexCoords = [
-    //front face
-    0.0, 0.0,
-    1.0, 0.0,
-    2.0, 0.0,
-    0.5, 1.0,
-    1.5, 1.0,
-    1.0, 2.0,
-
-    //rear face
-    0.0, 0.0,
-    1.0, 0.0,
-    2.0, 0.0,
-    0.5, 1.0,
-    1.5, 1.0,
-    1.0, 2.0
-  ];
-
-  trianglesTexCoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleTexCoords), gl.STATIC_DRAW);
-
-  //setup vertice buffers
   //18 triangles
   var triangleVertexIndices = [
     //front face
@@ -257,10 +200,31 @@ function setupBuffers() {
     8,2,0
   ];
 
-  triangleVerticesIndexBuffer = gl.createBuffer();
-  triangleVerticesIndexBuffer.number_vertex_points = triangleVertexIndices.length;
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleVerticesIndexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangleVertexIndices), gl.STATIC_DRAW);
+  var triangleVertices = [];
+  var triangleTexCoords = [];
+
+  for (var i = 0; i < triangleVertexIndices.length; i++) {
+    var a = triangleVertexIndices[i];
+
+    triangleVertices.push(triangleVerticesOriginal[a * 3]);
+    triangleVertices.push(triangleVerticesOriginal[a * 3 + 1]);
+    triangleVertices.push(triangleVerticesOriginal[a * 3 + 2]);
+
+    if (i >= 24) {
+      triangleTexCoords.push(triangleVerticesOriginal[a * 3 + 2]);
+      triangleTexCoords.push(triangleVerticesOriginal[a * 3 + 1]);
+    } else {
+      triangleTexCoords.push(triangleVerticesOriginal[a * 3]);
+      triangleTexCoords.push(triangleVerticesOriginal[a * 3 + 1]);
+    }
+  }
+
+  trianglesVerticeBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+  trianglesTexCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleTexCoords), gl.STATIC_DRAW);
 }
 
 function getMatrixUniforms() {
@@ -280,18 +244,12 @@ function drawScene() {
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
   gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
-  // vertexColorAttribute = gl.getAttribLocation(glProgram, 'aVertexColor');
-  // gl.enableVertexAttribArray(vertexColorAttribute);
-  // gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer);
-  // gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, false, 0, 0);
-
   vertexTexCoordAttribute = gl.getAttribLocation(glProgram, 'aVertexTexCoord');
   gl.enableVertexAttribArray(vertexTexCoordAttribute);
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
   gl.vertexAttribPointer(vertexTexCoordAttribute, 2, gl.FLOAT, false, 0, 0);
 
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleVerticesIndexBuffer);
-  gl.drawElements(gl.TRIANGLES, triangleVerticesIndexBuffer.number_vertex_points, gl.UNSIGNED_SHORT, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 18 * 3);
 }
 </script>
 </head>
