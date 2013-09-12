@@ -25,12 +25,20 @@ void main(void) {
 varying highp vec2 vTextureCoord;
 
 uniform sampler2D uSampler;
+uniform sampler2D uSampler2;
 uniform int uDoTexturing;
 
 void main(void) {
 
   if (uDoTexturing == 1) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    // gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    highp vec4 stoneColor = texture2D(uSampler, vec2(vTextureCoord.st));
+    highp vec4 webglLogoColor = texture2D(uSampler2, vec2(vTextureCoord.st));
+
+    gl_FragColor = mix(stoneColor, webglLogoColor, 0.5);
+    // gl_FragColor = mix(stoneColor, webglLogoColor, webglLogoColor.a);
+    // gl_FragColor = mix(stoneColor, webglLogoColor, 1.0 - webglLogoColor.a);
+
   } else {
     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
   }
@@ -56,7 +64,10 @@ var mvMatrix = mat4.create(),
 
 var angle = 0.01;
 
-var textureImage = null;
+var STONE_TEXTURE = 0,
+  WEBGL_LOGO_TEXTURE = 1,
+  texture = [],
+  textureImage = [];
 
 var paused = false,
   useTexture = false,
@@ -86,28 +97,36 @@ $(document).keyup(function(evt) {
 });
 
 function loadTexture() {
-  textureImage = new Image();
-  textureImage.onload = function() {
-    setupTexture();
-  }
+  textureImage[STONE_TEXTURE] = new Image();
+  textureImage[STONE_TEXTURE].onload = function() {
+    setupTexture(STONE_TEXTURE);
+    gl.uniform1i(glProgram.samplerUniform, 0);
+  };
+  textureImage[STONE_TEXTURE].src = 'textures/stone-128px.jpg';
 
-  textureImage.src = 'textures/stone-128px.jpg';
+  textureImage[WEBGL_LOGO_TEXTURE] = new Image();
+  textureImage[WEBGL_LOGO_TEXTURE].onload = function() {
+    setupTexture(WEBGL_LOGO_TEXTURE);
+    gl.uniform1i(glProgram.samplerUniform2, 1);
+  };
+  textureImage[WEBGL_LOGO_TEXTURE].src = 'textures/webgl_logo-512px.png';
+
+  glProgram.uDoTexturing = gl.getUniformLocation(glProgram, 'uDoTexturing');
+  gl.uniform1i(glProgram.uDoTexturing, 1);
 }
 
-function setupTexture() {
-  var texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+function setupTexture(i) {
+  gl.activeTexture(gl.TEXTURE0 + i);
+  texture[i] = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture[i]);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImage);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImage[i]);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
   gl.uniform1i(glProgram.samplerUniform, 0);
 
-  glProgram.uDoTexturing = gl.getUniformLocation(glProgram, 'uDoTexturing');
-  gl.uniform1i(glProgram.uDoTexturing, 1);
-
-  if (!gl.isTexture(texture)) {
+  if (!gl.isTexture(texture[i])) {
     console.error('Error: Texture is invalid');
   }
 }
@@ -270,6 +289,7 @@ function getMatrixUniforms() {
   glProgram.pMatrixUniform = gl.getUniformLocation(glProgram, 'uPMatrix');
   glProgram.mvMatrixUniform = gl.getUniformLocation(glProgram, 'uMVMatrix');
   glProgram.samplerUniform = gl.getUniformLocation(glProgram, 'uSampler');
+  glProgram.samplerUniform2 = gl.getUniformLocation(glProgram, 'uSampler2');
 }
 
 function setMatrixUniforms() {
