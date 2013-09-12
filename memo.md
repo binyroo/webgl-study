@@ -44,3 +44,20 @@ void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 이렇게 하지 않는 이유는 뷰포트를 조정할 경우 수동으로 뷰포트를 설정한 애플리케이션에서 오작동을 일으키기 때문이다.
 이로 인해, 렌더링하기 전에 뷰포트를 현재 캔버스 크기로 명시적으로 설정하는 게 좋다.
 onresize 이벤트핸들러를 활용한다.
+
+MVP 메트릭스
+모델 - 뷰 매트릭스 (World - Model Matrix, World - View Matrix)
+투영 매트릭스
+
+
+텍스처
+텍스처의 너비와 높이는 보통 같다.
+64, 128, 256... 2의 n승 크기
+(s,t) (0,0) ~ (1,1)
+WebGLTexture createTexture();
+void bindTexture(GLenum target, WebGLTexture texture);
+GLbooean isTexture(WegGLTexture);
+void deleteTexture(WebGETexture);
+void texImage2D(GLeunm target, GLint level, GLEnum internalformat, GLEnum format, GLenum type, [source]);
+void texImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type ArrayBufferView? pixels);
+

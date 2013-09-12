@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title></title>
+  <style type="text/css">
+  body{background-color:grey;}
+  canvas{background-color:white;}
+  </style>
+  <script type="x-shader/x-vertex" id="shader-vs">
+    attribute vec3 aVertexPosition;
+    varying highp vec2 vTextureCoord;
+
+    void main(void) {
+      gl_Position = vec4(aVertexPosition, 1.0);
+      vTextureCoord = aVertexPosition.xy + 0.5;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="shader-fs">
+    varying highp vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+
+    void main(void) {
+      gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    }
+  </script>
+  <script src="lib/raf_polyfill.js" type="text/javascript"></script>
+  <script src="lib/gl-matrix-min.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    var gl = null,
+      canvas = null,
+      glProgram = null,
+      fragmentShader = null,
+      vertexShader = null;
+
+    var vertexPositionAttribute = null,
+      trianglesVerticeBuffer = null;
+
+    var texture = null,
+      textureImage = null;
+
+    function loadTexture() {
+      textureImage = new Image();
+      textureImage.src = 'textures/smiley-128px.png';
+    }
+
+    function setupTexture() {
+      texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureImage);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+      if (!gl.isTexture(texture)) {
+        console.error('Error: Texture is invalid');
+      }
+
+      glProgram.samplerUniform = gl.getUniformLocation(glProgram, 'uSampler');
+      gl.uniform1i(glProgram.samplerUniform, 0);
+    }
+
+    function initWebGL() {
+      canvas = document.getElementById('my-canvas');
+
+      try {
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      } catch(e) {
+      }
+
+      if (gl) {
+        initShaders();
+        setupBuffers();
+        loadTexture();
+        textureImage.onload = function() {
+          setupTexture();
+          setupWebGL();
+          drawScene();
+        }
+      } else {
+        alert('Error: Your browser does not appear to support WebGL.');
+      }
+    }
+
+    function setupWebGL() {
+      gl.clearColor(0.1, 0.5, 0.1, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    function initShaders() {
+      var vs_source = document.getElementById('shader-vs').innerHTML,
+        fs_source = document.getElementById('shader-fs').innerHTML;
+
+        vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+        fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+        glProgram = gl.createProgram();
+
+        gl.attachShader(glProgram, vertexShader);
+        gl.attachShader(glProgram, fragmentShader);
+        gl.linkProgram(glProgram);
+
+        if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+          alert('Unable to initialize the shader program.');
+        }
+
+        gl.useProgram(glProgram);
+    }
+
+    function makeShader(src, type) {
+      var shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert('Error compiling shader: ' + gl.getShaderInfoLog(shader));
+      }
+
+      return shader;
+    }
+
+    function setupBuffers() {
+      var triangleVertices = [ 
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0,
+        0.5, 0.5, 0.0,
+
+        0.5, 0.5, 0.0,
+        -0.5, 0.5, 0.0,
+        -0.5, -0.5, 0.0
+      ];
+
+      trianglesVerticeBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+    }
+
+    function drawScene() {
+      vertexPositionAttribute = gl.getAttribLocation(glProgram, 'aVertexPosition');
+      gl.enableVertexAttribArray(vertexPositionAttribute);
+      gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+      gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 2 * 3);
+    }
+  </script>
+</head>
+<body onload="initWebGL()">
+  <canvas id="my-canvas" width="400" height="300"></canvas>
+
+</body>
+</html>
