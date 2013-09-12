@@ -52,6 +52,28 @@ var angle = 0.01;
 
 var textureImage = null;
 
+var paused = false,
+  useTexture = false,
+  useLighting = false;
+
+$(document).keyup(function(evt) {
+
+  switch(evt.keyCode) {
+    case 80: //'p'
+      paused = !paused;
+      break;
+    case 84: //'t'
+      useTexture = !useTexture;
+      break;
+    case 76: //'l'
+      useLighting = !useLighting;
+      break;
+    default:
+      break;
+  }
+
+});
+
 function loadTexture() {
   textureImage = new Image();
   textureImage.onload = function() {
@@ -90,9 +112,11 @@ function initWebGL() {
     loadTexture();
 
     (function animLoop() {
-      setupWebGL();
-      setMatrixUniforms();
-      drawScene();
+      if (!paused) {
+        setupWebGL();
+        setMatrixUniforms();
+        drawScene();
+      }
       requestAnimationFrame(animLoop, canvas);
     })();
   } else {
