@@ -61,3 +61,20 @@ void deleteTexture(WebGETexture);
 void texImage2D(GLeunm target, GLint level, GLEnum internalformat, GLEnum format, GLenum type, [source]);
 void texImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type ArrayBufferView? pixels);
 
+조명
+
+셰이딩 모델
+
+다각형에 셰이딩을 적용하는 기본적인 방법은 두 가지다. 바로 플랫 셰이딩과 부드러운 셰이딩이다.
+- 플랫 셰이딩
+플랫 셰이딩은 전체 다각형에 한 색상을 적용한다. 이때는 모든 정점에 동일한 법선 백터를 사용한다.
+그 결과 모서리와 법선이 만나는 지점이 전체 면의 법선 백터 값에 따라 같은 정점 상에서 다를 수 있다.
+이런 차이로 인해 이웃한 모서리 사이의 조명 값이 크게 달라져 한 모서리가 어디에서 깥나고 시작하는지 알 수 있게 된다.
+- 부드러운 셰이딩
+반대로 부드러운 셰이딩에서는 색상과 법선 값을 보간한다.
+이는 정점 셰이더에서 고러드 셰이딩 또는 프레그먼트 셰이더에서 퐁 셰이딩을 통해 수행할 수 있다.
+
+
+
+
+
